@@ -93,7 +93,7 @@ class BigBasketAutomation:
                 flow = Flow.from_client_config(
                     client_config=creds_data,
                     scopes=combined_scopes,
-                    redirect_uri=st.secrets.get("google", {}).get("redirect_uri", "https://bigbasketgrn.streamlit.app/")
+                    redirect_uri=st.secrets.get("google", {}).get("redirect_uri", "https://bbalertgrn.streamlit.app/")
                 )
                 
                 # Generate authorization URL
@@ -1084,4 +1084,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
