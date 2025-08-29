@@ -357,13 +357,13 @@ class BigBasketAutomation:
         if len(st.session_state.logs) > 100:
             st.session_state.logs = st.session_state.logs[-100:]
         
-        # Update log display
+        # Just update the container (don’t create a new widget)
         log_container.text_area(
             "Activity Log",
-            value='\n'.join(st.session_state.logs[-20:]),  # Show last 20 entries
-            height=300,
-            key=f"log_display_{len(st.session_state.logs)}"
+            value='\n'.join(st.session_state.logs[-20:]),
+            height=300
         )
+
     
     def _get_email_details(self, message_id: str) -> Dict:
         """Get email details including sender and subject"""
@@ -1086,3 +1086,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
