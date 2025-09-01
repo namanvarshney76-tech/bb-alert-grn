@@ -18,7 +18,6 @@ import io
 import warnings
 import subprocess
 import sys
-import math
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from io import StringIO
@@ -662,14 +661,9 @@ class BigBasketAutomation:
         if isinstance(value, (int, float)):
             if pd.isna(value):
                 return ""
-            return value  # Preserve numeric type
+            return value  # Return numbers as numbers, not strings
         cleaned = str(value).strip().replace("'", "")
-        try:
-            if '.' in cleaned:
-                return float(cleaned)
-            return int(cleaned)
-        except ValueError:
-            return cleaned
+        return cleaned
     
     def _clean_dataframe(self, df):
         """Clean DataFrame by removing blank rows and duplicates"""
@@ -715,6 +709,7 @@ class BigBasketAutomation:
             # Prepare data - don't convert everything to strings
             clean_data = df.fillna('')
             
+            # Convert DataFrame to list of lists, preserving data types
             if append_headers:
                 values = [clean_data.columns.tolist()] + clean_data.values.tolist()
             else:
@@ -738,28 +733,6 @@ class BigBasketAutomation:
             
         except Exception as e:
             raise Exception(f"Failed to append to sheet: {str(e)}")
-            
-            # Find the next empty row
-            result = self.sheets_service.spreadsheets().values().get(
-                spreadsheetId=spreadsheet_id,
-                range=f"{sheet_name}!A:A"
-            ).execute()
-            existing_rows = result.get('values', [])
-            start_row = len(existing_rows) + 1 if existing_rows else 1
-            
-            # Append data
-            self.sheets_service.spreadsheets().values().append(
-                spreadsheetId=spreadsheet_id,
-                range=f"{sheet_name}!A{start_row}",
-                valueInputOption="RAW",
-                body={"values": values}
-            ).execute()
-            
-            self._log_message(f"Appended {len(values)} rows to Google Sheet")
-            
-        except Exception as e:
-            self._log_message(f"ERROR appending to sheet: {str(e)}")
-            raise
     
     def _remove_duplicates_from_sheet(self, spreadsheet_id: str, sheet_name: str):
         """Remove duplicate rows from Google Sheet"""
@@ -767,7 +740,8 @@ class BigBasketAutomation:
             # Get all data
             result = self.sheets_service.spreadsheets().values().get(
                 spreadsheetId=spreadsheet_id,
-                range=f"{sheet_name}!A:ZZ"
+                range=f"{sheet_name}!A:ZZ",
+                valueRenderOption='UNFORMATTED_VALUE'  # Get raw values, not formatted strings
             ).execute()
             
             values = result.get('values', [])
@@ -808,10 +782,11 @@ class BigBasketAutomation:
                 all_data = [headers] + unique_rows
                 body = {'values': all_data}
                 
+                # Use USER_ENTERED to preserve number formatting
                 self.sheets_service.spreadsheets().values().update(
                     spreadsheetId=spreadsheet_id,
                     range=f"{sheet_name}!A1",
-                    valueInputOption='RAW',
+                    valueInputOption='USER_ENTERED',  # Changed from 'RAW'
                     body=body
                 ).execute()
                 
@@ -1015,4 +990,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
