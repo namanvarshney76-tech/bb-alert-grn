@@ -710,26 +710,34 @@ class BigBasketAutomation:
             return False
     
     def _append_to_sheet(self, spreadsheet_id: str, sheet_name: str, df: pd.DataFrame, append_headers: bool):
-        """Append DataFrame to Google Sheet, preserving number types"""
+        """Append DataFrame to Google Sheet while preserving number formatting"""
         try:
-            # Prepare data, preserving numeric types
-            def process_value(v):
-                if pd.isna(v) or v is None:
-                    return ''
-                if isinstance(v, (int, float)):
-                    return v  # Preserve numeric type
-                return str(v)  # Convert non-numeric to string
+            # Prepare data - don't convert everything to strings
+            clean_data = df.fillna('')
             
-            values = []
             if append_headers:
-                values.append([str(col) for col in df.columns])  # Headers always strings
-            
-            # Process each row, preserving numeric types
-            for row in df.itertuples(index=False):
-                values.append([process_value(cell) for cell in row])
+                values = [clean_data.columns.tolist()] + clean_data.values.tolist()
+            else:
+                values = clean_data.values.tolist()
             
             if not values:
                 return
+            
+            # Create the request body with proper value input option
+            body = {
+                'values': values
+            }
+            
+            # Use USER_ENTERED instead of RAW to preserve number formatting
+            self.sheets_service.spreadsheets().values().append(
+                spreadsheetId=spreadsheet_id,
+                range=f"{sheet_name}!A1",
+                valueInputOption='USER_ENTERED',  # Changed from 'RAW' to 'USER_ENTERED'
+                body=body
+            ).execute()
+            
+        except Exception as e:
+            raise Exception(f"Failed to append to sheet: {str(e)}")
             
             # Find the next empty row
             result = self.sheets_service.spreadsheets().values().get(
@@ -1007,3 +1015,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
